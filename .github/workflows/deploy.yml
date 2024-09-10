@@ -44,13 +44,17 @@ jobs:
       - name: Push Docker image to ECR
         run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest
 
-      - name: Install ECS CLI
+      - name: Install AWS CLI
         run: |
-          curl --silent --location "https://d1uj6qtbmh3dt5.cloudfront.net/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
-          chmod +x /usr/local/bin/ecs-cli
+          sudo apt-get update
+          sudo apt-get install -y awscli
 
       - name: Deploy to ECS
         run: |
-          ecs-cli configure profile --access-key ${{ secrets.AWS_ACCESS_KEY_ID }} --secret-key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --region ap-southeast-2
-          ecs-cli configure --cluster my-cluster --region ap-southeast-2 --default-launch-type EC2 --config-name my-cluster
-          ecs-cli compose --file docker-compose.yml service up --create-log-groups --cluster my-cluster
+          # Configure AWS CLI to use ECS
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ap-southeast-2
+
+          # Deploy to ECS
+          aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
