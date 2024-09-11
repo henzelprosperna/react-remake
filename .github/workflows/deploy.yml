@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Set up Node.js
@@ -56,5 +56,5 @@ jobs:
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set region ap-southeast-2
 
-          # Deploy to ECS
-          aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
+          # Deploy to ECS (use correct cluster and service names)
+          aws ecs update-service --cluster demo-cluster-react --service my-service --force-new-deployment
