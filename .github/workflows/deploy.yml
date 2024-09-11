@@ -63,9 +63,10 @@ jobs:
 
       - name: Deploy to ECS
         run: |
-          # Update ECS service
+          # Update ECS service with explicit region
           aws ecs update-service \
-            --cluster demo-cluster \
+            --cluster demo-cluster-react \
             --service my-service \
             --task-definition my-react-app-task \
-            --force-new-deployment
+            --force-new-deployment \
+            --region ap-southeast-2
