@@ -44,11 +44,12 @@ jobs:
       - name: Push Docker image to ECR
         run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest
 
-      - name: Update ECS Task Definition
+      - name: Update ECS Task Definition for Fargate
         run: |
-          # Register new task definition
           aws ecs register-task-definition \
             --family my-react-app-task \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
             --container-definitions '[{
               "name": "my-react-app",
               "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest",
@@ -63,7 +64,6 @@ jobs:
 
       - name: Deploy to ECS
         run: |
-          # Update ECS service with explicit region
           aws ecs update-service \
             --cluster demo-cluster-react \
             --service my-service \
