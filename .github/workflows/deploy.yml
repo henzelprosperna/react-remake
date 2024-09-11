@@ -50,6 +50,8 @@ jobs:
             --family my-react-app-task \
             --network-mode awsvpc \
             --requires-compatibilities FARGATE \
+            --cpu '256' \
+            --memory '512' \
             --container-definitions '[{
               "name": "my-react-app",
               "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest",
@@ -61,6 +63,7 @@ jobs:
                 "hostPort": 80
               }]
             }]'
+      
 
       - name: Deploy to ECS
         run: |
