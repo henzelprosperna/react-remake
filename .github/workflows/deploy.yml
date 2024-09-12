@@ -55,22 +55,26 @@ jobs:
       - name: Register ECS Task Definition for Fargate
         run: |
           aws ecs register-task-definition \
-            --family task-auto-deploy \
-            --network-mode awsvpc \
-            --requires-compatibilities FARGATE \
-            --cpu '256' \
-            --memory '512' \
-            --container-definitions '[{
+          --family task-auto-deploy \
+          --network-mode awsvpc \
+          --requires-compatibilities FARGATE \
+          --cpu '256' \
+          --memory '512' \
+          --container-definitions '[
+            {
               "name": "react-auto-deploy",
-              "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/react-auto-deploy:1",
+              "image": "YOUR_ECR_REPOSITORY_URL/react-auto-deploy:1",
               "essential": true,
               "memory": 512,
               "cpu": 256,
-              "portMappings": [{
-                "containerPort": 80,
-                "hostPort": 80
-              }]
-            }]'
+              "portMappings": [
+                {
+                  "containerPort": 80,
+                  "hostPort": 80
+                }
+              ]
+            }
+          ]'
 
       - name: Create ECS Service
         run: |
