@@ -48,25 +48,47 @@ jobs:
       - name: Push Docker image to ECR
         run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/react-auto-deploy:1
 
+      - name: Create ECS Task Execution Role
+        run: |
+          aws iam create-role --role-name ecsTaskExecutionRole \
+            --assume-role-policy-document '{
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            }'
+          
+          aws iam attach-role-policy --role-name ecsTaskExecutionRole \
+            --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
       - name: Register ECS Task Definition for Fargate
         run: |
           aws ecs register-task-definition \
             --family task-auto-deploy \
             --network-mode awsvpc \
             --requires-compatibilities FARGATE \
-            --cpu '256' \
-            --memory '512' \
+            --cpu '1024' \
+            --memory '3072' \
+            --execution-role-arn arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole \
             --container-definitions '[{
               "name": "react-auto-deploy",
               "image": "'${{ secrets.AWS_ACCOUNT_ID }}'.dkr.ecr.ap-southeast-2.amazonaws.com/react-auto-deploy:1",
               "essential": true,
-              "memory": 512,
-              "cpu": 256,
               "portMappings": [{
                 "containerPort": 80,
                 "hostPort": 80
               }]
             }]'
+
+      - name: Create ECS Cluster
+        run: |
+          aws ecs create-cluster --cluster-name cluster-auto-deploy || echo "Cluster already exists"
 
       - name: Create ECS Service
         run: |
