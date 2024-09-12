@@ -35,26 +35,34 @@ jobs:
         run: |
           aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com
 
+      - name: Create ECR Repository
+        run: |
+          aws ecr create-repository --repository-name react-auto-deploy || echo "Repository already exists"
+
       - name: Build Docker image
-        run: docker build -t my-react-app .
+        run: docker build -t react-auto-deploy:1 .
 
       - name: Tag Docker image
-        run: docker tag my-react-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest
+        run: docker tag react-auto-deploy:1 ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/react-auto-deploy:1
 
       - name: Push Docker image to ECR
-        run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest
+        run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/react-auto-deploy:1
 
-      - name: Update ECS Task Definition for Fargate
+      - name: Create ECS Cluster
+        run: |
+          aws ecs create-cluster --cluster-name cluster-auto-deploy || echo "Cluster already exists"
+
+      - name: Register ECS Task Definition for Fargate
         run: |
           aws ecs register-task-definition \
-            --family my-react-app-task \
+            --family task-auto-deploy \
             --network-mode awsvpc \
             --requires-compatibilities FARGATE \
             --cpu '256' \
             --memory '512' \
             --container-definitions '[{
-              "name": "my-react-app",
-              "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest",
+              "name": "react-auto-deploy",
+              "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-2.amazonaws.com/react-auto-deploy:1",
               "essential": true,
               "memory": 512,
               "cpu": 256,
@@ -63,13 +71,23 @@ jobs:
                 "hostPort": 80
               }]
             }]'
-      
+
+      - name: Create ECS Service
+        run: |
+          aws ecs create-service \
+            --cluster cluster-auto-deploy \
+            --service-name service-auto-deploy \
+            --task-definition task-auto-deploy \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration 'awsvpcConfiguration={subnets=[subnet-12345678],securityGroups=[sg-12345678],assignPublicIp=ENABLED}' \
+            --region ap-southeast-2 || echo "Service already exists"
 
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
-            --cluster demo-cluster-react \
-            --service my-service \
-            --task-definition my-react-app-task \
+            --cluster cluster-auto-deploy \
+            --service service-auto-deploy \
+            --task-definition task-auto-deploy \
             --force-new-deployment \
             --region ap-southeast-2
